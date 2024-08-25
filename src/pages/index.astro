@@ -1,0 +1,154 @@
+---
+import Layout from "../layouts/Layout.astro"
+import {sql} from "../util/db"
+import {GET as getLatestVersion} from "./latest.json"
+
+const downloads = await sql`select count(*)
+                            from downloads`
+const downloadCount = Number(downloads[0].count) + Number(process.env.INIT_COUNT ?? 0)
+
+const res = await getLatestVersion()
+const latestVersion = await res.json()
+---
+
+<Layout title="RL Challenge Manager">
+    <header>
+        <h1>RLCM</h1>
+        <p>Rayman&nbsp;Legends Challenge&nbsp;Manager</p>
+    </header>
+    <section id="dl">
+        <a href={latestVersion.url} id="downloadButton" data-version={latestVersion.name}>
+            <i class="fas fa-download"/>
+            Download version {latestVersion.name}
+        </a>
+        <p>Download count: <span id="count">{downloadCount}</span></p>
+    </section>
+    <section id="links">
+        <a href={`https://github.com/${process.env.GITHUB_REPO}`}>
+            <i class="fab fa-github"/>
+            GitHub
+        </a>
+        <a href={process.env.DISCORD_URL}>
+            <i class="fab fa-discord"/>
+            Discord
+        </a>
+    </section>
+</Layout>
+
+<script>
+    const downloadButton = document.getElementById("downloadButton") as HTMLElement
+    const downloadCount = document.getElementById("count") as HTMLElement
+
+    downloadButton.addEventListener("click", async () => {
+        await fetch(`/download/${downloadButton.dataset.version}`)
+        const count = parseInt(downloadCount.innerText)
+        downloadCount.innerText = (count + 1).toString()
+    })
+</script>
+
+<style>
+    @import url("https://fonts.googleapis.com/css?family=Spartan:100&display=swap");
+    @import url("https://fonts.googleapis.com/css?family=Open+Sans+Condensed:300&display=swap");
+    @import url("https://use.fontawesome.com/releases/v5.12.1/css/all.css");
+
+    body {
+        font-family: "Open Sans Condensed", sans-serif;
+        font-size: 1.6em;
+        color: slategray;
+        background: ghostwhite;
+        text-align: center;
+        --accent-clr: #8cb;
+        --accent-clr-alt: #9dc;
+    }
+
+    header {
+        margin-top: 50px;
+    }
+
+    header p {
+        font-size: 1.46em;
+        margin: 0;
+    }
+
+    h1 {
+        font-family: Spartan, sans-serif;
+        font-size: 6em;
+        font-weight: unset;
+        margin: 0;
+        padding-top: 50px;
+        line-height: 0.75;
+    }
+
+    i {
+        padding-right: 10px;
+    }
+
+    #dl {
+        margin-top: 100px;
+        margin-bottom: 100px;
+    }
+
+    #dl a {
+        text-transform: uppercase;
+        background: var(--accent-clr);
+        color: white;
+        text-decoration: none;
+        padding: 15px;
+        border-radius: 5px;
+        white-space: nowrap;
+    }
+
+    #dl a:hover {
+        background: var(--accent-clr-alt);
+    }
+
+    #dl p {
+        font-size: 0.8em;
+        padding-top: 20px;
+    }
+
+    #links {
+        display: inline-flex;
+        flex-direction: column;
+    }
+
+    #links a {
+        color: inherit;
+        text-decoration: none;
+        margin: 15px;
+    }
+
+    #links a:hover {
+        color: var(--accent-clr);
+    }
+
+    @media (max-width: 540px) {
+        header {
+            margin-top: 20px;
+        }
+
+        h1 {
+            font-size: 5em;
+        }
+    }
+
+    @media (max-width: 480px) {
+        h1 {
+            font-size: 3.8em;
+        }
+
+        #dl {
+            margin-top: 75px;
+            margin-bottom: 75px;
+        }
+    }
+
+    @media (prefers-color-scheme: dark) {
+        body {
+            color: #bcd;
+            background: #30303a;
+            --accent-clr: #598;
+            --accent-clr-alt: #487;
+        }
+    }
+</style>

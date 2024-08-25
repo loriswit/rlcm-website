@@ -1,0 +1,110 @@
+---
+import {sql} from "../util/db"
+import _ from "lodash"
+import type {GitHubRelease, CountryInfo, StatsRange} from "../util/types"
+import Layout from "../layouts/Layout.astro"
+
+const downloads = await sql`select *
+                            from downloads`
+
+// ignore some ranges of download stats
+const ignoredRanges = JSON.parse(process.env.IGNORE_STATS_RANGES ?? "[]") as StatsRange[]
+const stats = downloads.filter(({id}) =>
+    !ignoredRanges.some(([from, to]) => id >= from && id <= to))
+
+const versionRes = await fetch(`https://api.github.com/repos/${process.env.GITHUB_REPO}/releases`)
+const releases = await versionRes.json() as GitHubRelease[]
+if (versionRes.status >= 400)
+    return new Response(`An error occurred: ${releases.message}`, {status: versionRes.status})
+releases.reverse()
+const versionLabels = releases.map(r => r.tag_name)
+const versionValues = releases.map(r => r.assets[0].download_count)
+const versionsChartData = {
+    labels: versionLabels,
+    datasets: [{
+        label: "downloads",
+        data: versionValues,
+    }],
+}
+
+console.log(versionsChartData.datasets)
+
+const countries = _.orderBy(Object.entries(_.countBy(stats.map(s => s.country))), [1], ["desc"])
+const countryValues = countries.map(([_, value]) => value)
+const countryCodes = countries.map(([key]) => key)
+const countryRes = await fetch(`https://restcountries.com/v3.1/alpha?fields=name,cca2&codes=${countryCodes.join(",")}`)
+const countryData = await countryRes.json() as CountryInfo[]
+const countryNames = Object.fromEntries(countryData.map(n => [n.cca2, n.name.common]))
+const countryLabels = countryCodes.map(key => countryNames[key])
+const countriesChartData = {
+    labels: countryLabels,
+    datasets: [{
+        label: "downloads",
+        data: countryValues,
+    }],
+}
+
+const timeline = Object.entries(_.countBy(stats.map(s => s.date.toISOString().substring(0, 10))))
+const timelineLabels = timeline.map(([key]) => key)
+const timelineValues = timeline.map(([_, value]) => value)
+const timelineChartData = {
+    labels: timelineLabels,
+    datasets: [{
+        label: "downloads",
+        data: timelineValues,
+    }],
+}
+---
+
+<Layout title="RLCM Stats">
+    <div>
+        <canvas id="countries" width="400" height="200" data-chartdata={JSON.stringify(countriesChartData)}/>
+        <canvas id="versions" width="400" height="200" data-chartdata={JSON.stringify(versionsChartData)}/>
+    </div>
+    <canvas id="timeline" width="400" height="200" data-chartdata={JSON.stringify(timelineChartData)}/>
+</Layout>
+
+<script>
+    import {Chart, BarController, CategoryScale, LinearScale, BarElement, TimeScale, Colors} from "chart.js"
+    import "chartjs-adapter-date-fns"
+
+    Chart.register(BarController, CategoryScale, LinearScale, BarElement, TimeScale, Colors)
+
+    for (const chart of ["countries", "versions", "timeline"]) {
+        const canvas = document.getElementById(chart) as HTMLCanvasElement
+        new Chart(canvas, {
+            type: "bar",
+            data: JSON.parse(canvas.dataset.chartdata as string),
+            options: chart === "timeline" ? {scales: {x: {type: "time"}}} : undefined,
+        })
+    }
+</script>
+
+<style>
+    body {
+        font-family: sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    div {
+        display: flex;
+    }
+
+    canvas {
+        max-height: 400px;
+    }
+
+    #countries {
+        max-width: 1500px;
+    }
+
+    #versions {
+        max-width: 200px;
+    }
+
+    #timeline {
+        max-width: 1700px;
+    }
+</style>
