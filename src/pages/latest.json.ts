@@ -1,7 +1,9 @@
 import type {GitHubRelease} from "../util/types.ts"
 
 export async function GET() {
-    const res = await fetch(`https://api.github.com/repos/${process.env.GITHUB_REPO}/releases/latest`)
+    const res = await fetch(
+        `https://api.github.com/repos/${process.env.GITHUB_REPO}/releases/latest`,
+        {headers: {"Authorization": `Bearer ${process.env.GITHUB_TOKEN}`}})
     const release = await res.json() as GitHubRelease
 
     if (res.status >= 400)

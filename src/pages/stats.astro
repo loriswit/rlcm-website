@@ -12,7 +12,9 @@ const ignoredRanges = JSON.parse(process.env.IGNORE_STATS_RANGES ?? "[]") as Sta
 const stats = downloads.filter(({id}) =>
     !ignoredRanges.some(([from, to]) => id >= from && id <= to))
 
-const versionRes = await fetch(`https://api.github.com/repos/${process.env.GITHUB_REPO}/releases`)
+const versionRes = await fetch(
+    `https://api.github.com/repos/${process.env.GITHUB_REPO}/releases`,
+    {headers: {"Authorization": `Bearer ${process.env.GITHUB_TOKEN}`}})
 const releases = await versionRes.json() as GitHubRelease[]
 if (versionRes.status >= 400)
     return new Response(`An error occurred: ${releases.message}`, {status: versionRes.status})
@@ -26,8 +28,6 @@ const versionsChartData = {
         data: versionValues,
     }],
 }
-
-console.log(versionsChartData.datasets)
 
 const countries = _.orderBy(Object.entries(_.countBy(stats.map(s => s.country))), [1], ["desc"])
 const countryValues = countries.map(([_, value]) => value)
