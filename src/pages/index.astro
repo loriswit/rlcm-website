@@ -3,6 +3,10 @@ import Layout from "../layouts/Layout.astro"
 import {sql} from "../util/db"
 import {GET as getLatestVersion} from "./latest.json"
 
+const pageDesc =
+    "RLCM is a small application with multiple " +
+    "features related to Rayman Legends challenges"
+
 const downloads = await sql`select count(*)
                             from downloads`
 const downloadCount = Number(downloads[0].count) + Number(process.env.INIT_COUNT ?? 0)
@@ -11,7 +15,7 @@ const res = await getLatestVersion()
 const latestVersion = await res.json()
 ---
 
-<Layout title="RL Challenge Manager">
+<Layout title="RL Challenge Manager" description={pageDesc}>
     <header>
         <h1>RLCM</h1>
         <p>Rayman&nbsp;Legends Challenge&nbsp;Manager</p>
