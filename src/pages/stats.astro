@@ -35,7 +35,7 @@ const countryCodes = countries.map(([key]) => key)
 const countryRes = await fetch(`https://restcountries.com/v3.1/alpha?fields=name,cca2&codes=${countryCodes.join(",")}`)
 const countryData = await countryRes.json() as CountryInfo[]
 const countryNames = Object.fromEntries(countryData.map(n => [n.cca2, n.name.common]))
-const countryLabels = countryCodes.map(key => countryNames[key])
+const countryLabels = countryCodes.map(key => countryNames[key] ?? "Unknown")
 const countriesChartData = {
     labels: countryLabels,
     datasets: [{
@@ -44,7 +44,7 @@ const countriesChartData = {
     }],
 }
 
-const timeline = Object.entries(_.countBy(stats.map(s => s.date.toISOString().substring(0, 10))))
+const timeline = Object.entries(_.countBy(stats.map(s => s.date.toISOString().substring(0, 7))))
 const timelineLabels = timeline.map(([key]) => key)
 const timelineValues = timeline.map(([_, value]) => value)
 const timelineChartData = {
@@ -65,17 +65,18 @@ const timelineChartData = {
 </Layout>
 
 <script>
-    import {Chart, BarController, CategoryScale, LinearScale, BarElement, TimeScale, Colors} from "chart.js"
+    import {Chart, BarController, CategoryScale, LinearScale, BarElement, TimeScale, Colors, Tooltip} from "chart.js"
     import "chartjs-adapter-date-fns"
 
-    Chart.register(BarController, CategoryScale, LinearScale, BarElement, TimeScale, Colors)
+    Chart.register(BarController, CategoryScale, LinearScale, BarElement, TimeScale, Colors, Tooltip)
 
     for (const chart of ["countries", "versions", "timeline"]) {
         const canvas = document.getElementById(chart) as HTMLCanvasElement
         new Chart(canvas, {
             type: "bar",
             data: JSON.parse(canvas.dataset.chartdata as string),
-            options: chart === "timeline" ? {scales: {x: {type: "time"}}} : undefined,
+            options: chart !== "timeline" ? undefined :
+                {scales: {x: {type: "time", time: {unit: "month"}}}},
         })
     }
 </script>
