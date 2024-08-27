@@ -2,24 +2,52 @@
 import Layout from "../layouts/Layout.astro"
 import {sql} from "../util/db"
 import {GET as getLatestVersion} from "./latest.json"
+import type {ChangelogEntry, GitHubRelease, VersionInfo} from "../util/types"
 
 const pageDesc =
     "RLCM is a small application with multiple " +
     "features related to Rayman Legends challenges"
 
-const downloads = await sql`select count(*)
-                            from downloads`
-const downloadCount = Number(downloads[0].count) + Number(process.env.INIT_COUNT ?? 0)
+async function fetchDownloadCount(): Promise<number> {
+    const downloads = await sql`select count(*)
+                                from downloads`
+    return Number(downloads[0].count) + Number(process.env.INIT_COUNT ?? 0)
+}
 
-const res = await getLatestVersion()
-const latestVersion = await res.json()
+async function fetchLatestVersion(): Promise<VersionInfo> {
+    const res = await getLatestVersion()
+    return await res.json()
+}
+
+async function fetchChangelog(): Promise<ChangelogEntry[]> {
+    const res = await fetch(
+        `https://api.github.com/repos/${process.env.GITHUB_REPO}/releases`,
+        {headers: {"Authorization": `Bearer ${process.env.GITHUB_TOKEN}`}})
+    const releases = await res.json()
+
+    return releases.map((release: GitHubRelease) => ({
+        title: "Version " + release.tag_name.match(/[\d.]+/),
+        date: new Date(release.published_at),
+        changes: release.body.split("\n")
+            .filter(line => line.startsWith("-"))
+            .map(line => line.substring(1).trim() // render GitHub links
+                .replaceAll(/#(\d+)/g, `https://github.com/${process.env.GITHUB_REPO}/issues/$1`)
+                .replaceAll(/(https.+\/issues\/)(\d+)/g, `<a href="$1$2">#$2</a>`)
+                .replaceAll(/@(\w+)/g, `<a href="https://github.com/$1">@$1</a>`),
+            ),
+    }))
+}
+
+const [downloadCount, latestVersion, changelog] =
+    await Promise.all([fetchDownloadCount(), fetchLatestVersion(), fetchChangelog()])
 ---
 
 <Layout title="RL Challenge Manager" description={pageDesc}>
-    <header>
+    <header class="main-header">
         <h1>RLCM</h1>
         <p>Rayman&nbsp;Legends Challenge&nbsp;Manager</p>
     </header>
+
     <section id="dl">
         <a href={latestVersion.url} id="downloadButton" data-version={latestVersion.name}>
             <i class="fas fa-download"/>
@@ -27,12 +55,36 @@ const latestVersion = await res.json()
         </a>
         <p>Download count: <span id="count">{downloadCount}</span></p>
     </section>
+
+    <details id="changelog">
+        <summary><h2>Changelog</h2></summary>
+        {changelog.map(version => (
+                <div class="version">
+                    <header>
+                        <span class="title">
+                            <i class="fas fa-tag"/>
+                            {version.title}
+                        </span>
+                        <span class="date">
+                            {version.date.toLocaleDateString("en-gb",
+                                {day: "numeric", month: "long", year: "numeric"})}
+                        </span>
+                    </header>
+                    <ul>
+                        {version.changes.map(change => (
+                                <li set:html={change}></li>
+                        ))}
+                    </ul>
+                </div>
+        ))}
+    </details>
+
     <section id="links">
-        <a href={`https://github.com/${process.env.GITHUB_REPO}`}>
+        <a href={`https://github.com/${process.env.GITHUB_REPO}`} target="_blank">
             <i class="fab fa-github"/>
             GitHub
         </a>
-        <a href={process.env.DISCORD_URL}>
+        <a href={process.env.DISCORD_URL} target="_blank">
             <i class="fab fa-discord"/>
             Discord
         </a>
@@ -65,11 +117,25 @@ const latestVersion = await res.json()
         --accent-clr-alt: #9dc;
     }
 
-    header {
+    :global(a) {
+        text-decoration: none;
+        color: cornflowerblue;
+    }
+
+    :global(a):hover {
+        text-decoration: underline;
+        color: orange;
+    }
+
+    i {
+        padding-right: 10px;
+    }
+
+    .main-header {
         margin-top: 50px;
     }
 
-    header p {
+    .main-header p {
         font-size: 1.46em;
         margin: 0;
     }
@@ -77,19 +143,15 @@ const latestVersion = await res.json()
     h1 {
         font-family: Spartan, sans-serif;
         font-size: 6em;
-        font-weight: unset;
+        font-weight: normal;
         margin: 0;
         padding-top: 50px;
         line-height: 0.75;
     }
 
-    i {
-        padding-right: 10px;
-    }
-
     #dl {
         margin-top: 100px;
-        margin-bottom: 100px;
+        margin-bottom: 60px;
     }
 
     #dl a {
@@ -111,9 +173,76 @@ const latestVersion = await res.json()
         padding-top: 20px;
     }
 
+    details {
+        font-size: 0.75em;
+        max-height: 4em;
+        margin: auto;
+        padding: 0 0.6em;
+        text-align: left;
+        overflow: hidden;
+        transition: max-height 1s ease-out;
+    }
+
+    details[open] {
+        max-height: 1200px;
+    }
+
+    summary {
+        font-size: 1.3em;
+        user-select: none;
+        cursor: pointer;
+        width: fit-content;
+        margin: auto;
+        padding: 0 1em;
+    }
+
+    summary h2 {
+        font-size: 1em;
+        font-weight: normal;
+        margin: 0.4em 0;
+        padding-left: 0.2em;
+        display: inline-block;
+        text-transform: uppercase;
+    }
+
+    summary:hover {
+        color: var(--accent-clr);
+    }
+
+    #changelog .version {
+        max-width: 500px;
+        margin: auto;
+        border-top: 1px solid #fff2;
+        padding-top: 1em;
+    }
+
+    #changelog .version i {
+        font-size: 0.7em;
+        opacity: 40%;
+    }
+
+    #changelog header {
+        display: flex;
+        justify-content: space-between;
+    }
+
+    #changelog header .title {
+        font-weight: bold;
+    }
+
+    #changelog header .date {
+        opacity: 60%;
+    }
+
+    #changelog ul {
+        padding-left: 1.2em;;
+    }
+
     #links {
         display: inline-flex;
         flex-direction: column;
+        margin-top: 100px;
+        margin-bottom: 50px;
     }
 
     #links a {
@@ -127,7 +256,7 @@ const latestVersion = await res.json()
     }
 
     @media (max-width: 540px) {
-        header {
+        .main-header {
             margin-top: 20px;
         }
 
