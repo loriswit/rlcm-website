@@ -2,7 +2,9 @@
 import Layout from "../layouts/Layout.astro"
 import {sql} from "../util/db"
 import {GET as getLatestVersion} from "./latest.json"
-import type {ChangelogEntry, GitHubRelease, VersionInfo} from "../util/types"
+import type {VersionInfo} from "../util/types"
+import Changelog from "../components/Changelog.astro"
+import Instructions from "../components/Instructions.astro"
 
 const pageDesc =
     "RLCM is a small application with multiple " +
@@ -19,27 +21,8 @@ async function fetchLatestVersion(): Promise<VersionInfo> {
     return await res.json()
 }
 
-async function fetchChangelog(): Promise<ChangelogEntry[]> {
-    const res = await fetch(
-        `https://api.github.com/repos/${process.env.GITHUB_REPO}/releases`,
-        {headers: {"Authorization": `Bearer ${process.env.GITHUB_TOKEN}`}})
-    const releases = await res.json()
-
-    return releases.map((release: GitHubRelease) => ({
-        title: "Version " + release.tag_name.match(/[\d.]+/),
-        date: new Date(release.published_at),
-        changes: release.body.split("\n")
-            .filter(line => line.startsWith("-"))
-            .map(line => line.substring(1).trim() // render GitHub links
-                .replaceAll(/#(\d+)/g, `https://github.com/${process.env.GITHUB_REPO}/issues/$1`)
-                .replaceAll(/(https.+\/issues\/)(\d+)/g, `<a href="$1$2">#$2</a>`)
-                .replaceAll(/@(\w+)/g, `<a href="https://github.com/$1">@$1</a>`),
-            ),
-    }))
-}
-
-const [downloadCount, latestVersion, changelog] =
-    await Promise.all([fetchDownloadCount(), fetchLatestVersion(), fetchChangelog()])
+const [downloadCount, latestVersion] =
+    await Promise.all([fetchDownloadCount(), fetchLatestVersion()])
 ---
 
 <Layout title="RL Challenge Manager" description={pageDesc}>
@@ -56,27 +39,18 @@ const [downloadCount, latestVersion, changelog] =
         <p>Download count: <span id="count">{downloadCount}</span></p>
     </section>
 
+    <details id="instructions">
+        <summary>
+            <h2>Instructions</h2>
+        </summary>
+        <Instructions/>
+    </details>
+
     <details id="changelog">
-        <summary><h2>Changelog</h2></summary>
-        {changelog.map(version => (
-                <div class="version">
-                    <header>
-                        <span class="title">
-                            <i class="fas fa-tag"/>
-                            {version.title}
-                        </span>
-                        <span class="date">
-                            {version.date.toLocaleDateString("en-gb",
-                                {day: "numeric", month: "long", year: "numeric"})}
-                        </span>
-                    </header>
-                    <ul>
-                        {version.changes.map(change => (
-                                <li set:html={change}></li>
-                        ))}
-                    </ul>
-                </div>
-        ))}
+        <summary>
+            <h2>Changelog</h2>
+        </summary>
+        <Changelog/>
     </details>
 
     <section id="links">
@@ -180,11 +154,11 @@ const [downloadCount, latestVersion, changelog] =
         padding: 0 0.6em;
         text-align: left;
         overflow: hidden;
-        transition: max-height 1s ease-out;
+        transition: max-height 1.5s ease-out;
     }
 
     details[open] {
-        max-height: 1200px;
+        max-height: 1900px;
     }
 
     summary {
@@ -207,35 +181,6 @@ const [downloadCount, latestVersion, changelog] =
 
     summary:hover {
         color: var(--accent-clr);
-    }
-
-    #changelog .version {
-        max-width: 500px;
-        margin: auto;
-        border-top: 1px solid #fff2;
-        padding-top: 1em;
-    }
-
-    #changelog .version i {
-        font-size: 0.7em;
-        opacity: 40%;
-    }
-
-    #changelog header {
-        display: flex;
-        justify-content: space-between;
-    }
-
-    #changelog header .title {
-        font-weight: bold;
-    }
-
-    #changelog header .date {
-        opacity: 60%;
-    }
-
-    #changelog ul {
-        padding-left: 1.2em;;
     }
 
     #links {

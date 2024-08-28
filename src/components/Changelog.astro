@@ -1,0 +1,73 @@
+---
+import type {GitHubRelease, ChangelogEntry} from "../util/types"
+
+const res = await fetch(
+    `https://api.github.com/repos/${process.env.GITHUB_REPO}/releases`,
+    {headers: {"Authorization": `Bearer ${process.env.GITHUB_TOKEN}`}})
+const releases = await res.json()
+
+const changelog: ChangelogEntry[] = releases.map((release: GitHubRelease) => ({
+    title: "Version " + release.tag_name.match(/[\d.]+/),
+    date: new Date(release.published_at),
+    changes: release.body.split("\n")
+        .filter(line => line.startsWith("-"))
+        .map(line => line.substring(1).trim() // render GitHub links
+            .replaceAll(/#(\d+)/g, `https://github.com/${process.env.GITHUB_REPO}/issues/$1`)
+            .replaceAll(/(https.+\/issues\/)(\d+)/g, `<a href="$1$2">#$2</a>`)
+            .replaceAll(/@(\w+)/g, `<a href="https://github.com/$1">@$1</a>`),
+        ),
+}))
+---
+
+<div class="changelog">
+    {changelog.map(version => (
+            <div class="version">
+                <header>
+                    <span class="title">
+                        <i class="fas fa-tag"/>
+                        {version.title}
+                    </span>
+                    <span class="date">
+                        {version.date.toLocaleDateString("en-gb",
+                            {day: "numeric", month: "long", year: "numeric"})}
+                    </span>
+                </header>
+                <ul>
+                    {version.changes.map(change => (
+                            <li set:html={change}></li>
+                    ))}
+                </ul>
+            </div>
+    ))}
+</div>
+
+<style>
+    .version {
+        max-width: 500px;
+        margin: auto;
+        border-top: 1px solid #fff2;
+        padding-top: 1em;
+    }
+
+    .version i {
+        font-size: 0.7em;
+        opacity: 40%;
+    }
+
+    header {
+        display: flex;
+        justify-content: space-between;
+    }
+
+    header .title {
+        font-weight: bold;
+    }
+
+    header .date {
+        opacity: 60%;
+    }
+
+    ul {
+        padding-left: 1.2em;;
+    }
+</style>

@@ -1,0 +1,36 @@
+---
+import {Image} from "astro:assets"
+import trainingPainting from "../assets/screenshot_training-painting.webp"
+import levelGenerator from "../assets/screenshot_level-generator.webp"
+import againstTheClock from "../assets/screenshot_against-the-clock.webp"
+import grabThemQuickly from "../assets/screenshot_grab-them-quickly.webp"
+---
+
+<div class="instructions">
+    <p>Launch RLCM and install the training room mod, then launch Rayman Legends. You will see a new
+        <strong>training painting</strong> instead of the usual challenges. Jump into this painting.</p>
+    <Image src={trainingPainting} alt="The training painting in the main gallery"/>
+    <p>Jump into one of the five challenge painting. The following menu will open, letting you choose one of the
+        available <strong>level generators</strong>. Each of these generators will generate a different layout for the
+        level.</p>
+    <Image src={levelGenerator} alt="The menu for selecting a level generator"/>
+    <p>Once the challenge has loaded, RLCM will display various kind of information about it, including
+        <strong>properties</strong> that can be edited. When changed, the new property takes effect immediately. The
+        only exception is changing the seed which requires the challenge to be restarted.</p>
+    <Image src={againstTheClock} alt="A custom challenge (Land of the Livid Dead: against the clock)"/>
+    <p>Have fun creating <strong>new types of challenge</strong>! You can even change properties while the challenge is
+        running.</p>
+    <Image src={grabThemQuickly} alt="A custom challenge (Infinite Tower: grab them quickly)"/>
+</div>
+
+<style>
+    .instructions {
+        max-width: 600px;
+        margin: auto;
+    }
+
+    img {
+        width: 100%;
+        height: auto;
+    }
+</style>
