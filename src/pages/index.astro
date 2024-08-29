@@ -54,6 +54,10 @@ const [downloadCount, latestVersion] =
     </details>
 
     <section id="links">
+        <a id="contact" target="_blank">
+            <i class="fas fa-envelope"/>
+            Contact
+        </a>
         <a href={`https://github.com/${process.env.GITHUB_REPO}`} target="_blank">
             <i class="fab fa-github"/>
             GitHub
@@ -74,6 +78,17 @@ const [downloadCount, latestVersion] =
         const count = parseInt(downloadCount.innerText)
         downloadCount.innerText = (count + 1).toString()
     })
+
+    async function contactHandler(event: MouseEvent) {
+        const res = await fetch("https://loriswit.com/api/contact")
+        const address = await res.text()
+        const target = event.target as HTMLAnchorElement
+        target.removeEventListener("click", contactHandler)
+        target.href = `mailto:${address}`
+        target.click()
+    }
+
+    document.getElementById("contact")?.addEventListener("click", contactHandler)
 </script>
 
 <style>
@@ -185,7 +200,7 @@ const [downloadCount, latestVersion] =
 
     #links {
         display: inline-flex;
-        flex-direction: column;
+        gap: 1em;
         margin-top: 100px;
         margin-bottom: 50px;
     }
@@ -198,6 +213,10 @@ const [downloadCount, latestVersion] =
 
     #links a:hover {
         color: var(--accent-clr);
+    }
+
+    #contact {
+        cursor: pointer;
     }
 
     @media (max-width: 540px) {
@@ -218,6 +237,11 @@ const [downloadCount, latestVersion] =
         #dl {
             margin-top: 75px;
             margin-bottom: 75px;
+        }
+
+        #links {
+            flex-direction: column;
+            gap: 0;
         }
     }
 
