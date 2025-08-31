@@ -7,15 +7,19 @@ export async function GET({params, clientAddress}: APIContext) {
     const res = await fetch(`${apiRoot}/ipgeo?apiKey=${apiKey}&ip=${clientAddress}&fields=country_code2`)
     const clientInfo = await res.json()
 
-    if(res.status >= 400)
+    if (res.status >= 400)
         console.warn(`Request failed (${res.status}): ${clientInfo.message}`)
 
     const country = clientInfo.country_code2 ?? null
     if (!country)
         console.warn(`Warning: could not find country for client ${clientAddress}`)
 
-    await sql`insert into downloads (date, version, country)
-              values (now(), ${params.version}, ${country})`
-
+    try {
+        await sql`insert into downloads (date, version, country)
+                  values (now(), ${params.version}, ${country})`
+    } catch (e) {
+        console.warn("Warning: could not increment download count")
+        console.warn(e)
+    }
     return new Response()
 }

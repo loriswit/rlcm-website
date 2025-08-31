@@ -11,9 +11,16 @@ const pageDesc =
     "features related to Rayman Legends challenges"
 
 async function fetchDownloadCount(): Promise<number> {
-    const downloads = await sql`select count(*)
-                                from downloads`
-    return Number(downloads[0].count) + Number(process.env.INIT_COUNT ?? 0)
+    try {
+        const downloads = await sql`select count(*)
+                                    from downloads`
+        return Number(downloads[0].count) + Number(process.env.INIT_COUNT ?? 0)
+
+    } catch (e) {
+        console.warn("Warning: could not fetch download count")
+        console.warn(e)
+        return NaN
+    }
 }
 
 async function fetchLatestVersion(): Promise<VersionInfo> {
@@ -36,7 +43,7 @@ const [downloadCount, latestVersion] =
             <i class="fas fa-download"/>
             Download version {latestVersion.name}
         </a>
-        <p>Download count: <span id="count">{downloadCount}</span></p>
+        {!isNaN(downloadCount) && <p>Download count: <span id="count">{downloadCount}</span></p>}
     </section>
 
     <details id="instructions">
