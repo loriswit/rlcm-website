@@ -4,13 +4,9 @@ import _ from "lodash"
 import type {GitHubRelease, CountryInfo, StatsRange} from "../util/types"
 import Layout from "../layouts/Layout.astro"
 
-const downloads = await sql`select *
-                            from downloads`
-
-// ignore some ranges of download stats
-const ignoredRanges = JSON.parse(process.env.IGNORE_STATS_RANGES ?? "[]") as StatsRange[]
-const stats = downloads.filter(({id}) =>
-    !ignoredRanges.some(([from, to]) => id >= from && id <= to))
+const stats = await sql`select *
+                        from downloads
+                        where ignored = false`
 
 const versionRes = await fetch(
     `https://api.github.com/repos/${process.env.GITHUB_REPO}/releases`,

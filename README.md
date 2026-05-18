@@ -12,7 +12,8 @@ create table public.downloads
     id      serial primary key,
     date    timestamp not null,
     version text      not null,
-    country text
+    country text,
+    ignored boolean   not null default false
 );
 ```
 
@@ -31,7 +32,6 @@ Define the following environment variables.
 | `GITHUB_REPO`         | The RLCM GitHub repository (`user/repo`)           |
 | `GITHUB_TOKEN`        | A GitHub access token (to increase requests limit) |
 | `INIT_COUNT`          | The initial number of downloads                    |
-| `IGNORE_STATS_RANGES` | A list of ID ranges to discard from stats          |
 | `DISCORD_URL`         | A link to the Discord server                       |
 
 Start the development server.

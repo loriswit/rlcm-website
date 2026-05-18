@@ -13,7 +13,8 @@ const pageDesc =
 async function fetchDownloadCount(): Promise<number> {
     try {
         const downloads = await sql`select count(*)
-                                    from downloads`
+                                    from downloads
+                                    where ignored = false`
         return Number(downloads[0].count) + Number(process.env.INIT_COUNT ?? 0)
 
     } catch (e) {
