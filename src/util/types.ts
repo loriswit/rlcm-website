@@ -23,12 +23,3 @@ export interface ChangelogEntry {
     date: Date
     changes: string[]
 }
-
-export interface CountryInfo {
-    name: {
-        common: string
-    }
-    cca2: string
-}
-
-export type StatsRange = [number, number]

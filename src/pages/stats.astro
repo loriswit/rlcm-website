@@ -1,7 +1,8 @@
 ---
 import {sql} from "../util/db"
 import _ from "lodash"
-import type {GitHubRelease, CountryInfo, StatsRange} from "../util/types"
+import {getCountryNameByCode} from "../util/countries"
+import type {GitHubRelease} from "../util/types"
 import Layout from "../layouts/Layout.astro"
 
 const stats = await sql`select *
@@ -28,10 +29,7 @@ const versionsChartData = {
 const countries = _.orderBy(Object.entries(_.countBy(stats.map(s => s.country))), [1], ["desc"])
 const countryValues = countries.map(([_, value]) => value)
 const countryCodes = countries.map(([key]) => key)
-const countryRes = await fetch(`https://restcountries.com/v3.1/alpha?fields=name,cca2&codes=${countryCodes.join(",")}`)
-const countryData = await countryRes.json() as CountryInfo[]
-const countryNames = Object.fromEntries(countryData.map(n => [n.cca2, n.name.common]))
-const countryLabels = countryCodes.map(key => countryNames[key] ?? "Unknown")
+const countryLabels = countryCodes.map(getCountryNameByCode)
 const countriesChartData = {
     labels: countryLabels,
     datasets: [{
